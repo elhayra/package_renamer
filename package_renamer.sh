@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# provide args: PATH, new package name
-# get package path
-# for each folder and file change their name according to new name
-# change text in files too
+#This script go recursively over all files in chosen path, 
+#and if folder or file or file content contains chosen string
+#it will replace it with the new requested string.
 
+#To use this script provide 3 args: <pkg path> <old name> <new name> 
+#e.g. /package_renamer.sh path/to/some/folder/ some_old_string some_new_string
 
 GREEN_TXT='\e[0;32m'
 WHITE_TXT='\e[1;37m'
 RED_TXT='\e[31m'
 NO_COLOR='\033[0m'
 
-# check for hardware argument, and determine installation type #
 if [ $# -eq 3 ]
 then  
     PKG_PATH=$1
@@ -29,17 +29,42 @@ fi
 
 printf "${WHITE_TXT}\n***Renaming ${PKG_PATH} content***\n${NO_COLOR}"
 
-# basename 
-
 change_files_name() {
-    for f in "$1"/*; do
-        if [ -d "$f" ];then #directory
-            echo "dir: `basename $f`"
+    FIRST_FILE=true
+    for f in "$1"/*; do # go recursively over all files under chosen path
+        if [ -d "$f" ];then # directory
+            echo "checking dir at: $f ..."
+            DIR_NAME=`basename $f`
+            if [[ $DIR_NAME = *$OLD_NAME* ]]; then
+                DIR_NEW_NAME="${DIR_NAME//$OLD_NAME/$NEW_NAME}"
+                echo "old name detected. replacing $DIR_NAME with $DIR_NEW_NAME"
+                cd $f/..
+                mv $DIR_NAME $DIR_NEW_NAME
+            fi
             change_files_name "$f"
+            echo "done."
         elif [ -f "$f" ]; then #file
-            echo "file: `basename $f`"
+            if $FIRST_FILE; then
+                echo "\\"
+                FIRST_FILE=false
+            else
+                echo " |"
+            fi
+            echo " *-> checking file at: $f and editing content ..."
+            FILE_NAME=`basename $f`
+            FILE_PATH=`dirname $f`
+            FILE_NEW_NAME="${FILE_NAME//$OLD_NAME/$NEW_NAME}"
+            sed -i -e 's/'"$OLD_NAME"'/'"$NEW_NAME"'/g' $f # replace file content
+            if [[ $FILE_NAME = *$OLD_NAME* ]]; then
+                echo " ***old name detected. replacing $FILE_NAME with $FILE_NEW_NAME ***"
+                cd $FILE_PATH
+                mv $FILE_NAME $FILE_NEW_NAME
+                echo "done."
+            fi
         fi
     done
 }
 
 change_files_name $PKG_PATH
+
+echo "replacing completed"
