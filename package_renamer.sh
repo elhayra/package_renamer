@@ -61,6 +61,7 @@ change_files_name() {
                 mv $FILE_NAME $FILE_NEW_NAME
                 echo "done."
             fi
+            change_files_name "$f"
         fi
     done
 }
